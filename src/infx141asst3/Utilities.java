@@ -34,8 +34,6 @@ public class Utilities
 
     public static ArrayList<String> tokenizeFile(File input)
     {
-        // TODO Write body!
-
         // List of tokens
         ArrayList<String> tokens = new ArrayList<String>();
         Scanner file;
