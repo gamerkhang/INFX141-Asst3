@@ -12,10 +12,14 @@ import java.util.List;
  * Created by VGDC_1 on 2/8/2016.
  */
 public class Indexer {
-    private HashMap<String, List<Pair<String, Integer>>> index;
+    public HashMap<String, WordTFIDF> index;
+    public int corpusSize;
+    public HashMap<String, Integer> docSizes;
 
     public Indexer() {
-        index = new HashMap<String, List<Pair<String, Integer>>>();
+        corpusSize = 0;
+        index = new HashMap<String, WordTFIDF>();
+        docSizes = new HashMap<String, Integer>();
     }
 
     public Indexer(String filename) {
@@ -23,11 +27,22 @@ public class Indexer {
     }
 
     public void addFrequencies(String filename, List<Frequency> frequencies) {
+        int numWords = 0;
+        for (int i = 0; i < frequencies.size(); i++) {
+            numWords += frequencies.get(i).getFrequency();
+        }
+
+        corpusSize += numWords;
+
+        docSizes.put(filename, numWords);
+
         for (int i = 0; i < frequencies.size(); i++) {
             if (!index.containsKey(frequencies.get(i).getText()))
-                index.put(frequencies.get(i).getText(), new ArrayList<Pair<String, Integer>>());
+                index.put(frequencies.get(i).getText(), new WordTFIDF(frequencies.get(i).getText()));
 
-            index.get(frequencies.get(i).getText()).add(new Pair<String, Integer>(filename, frequencies.get(i).getFrequency()));
+            index.get(frequencies.get(i).getText()).add(new Pair<String, Pair<Integer, Double>>(filename,
+                    new Pair<Integer, Double>(frequencies.get(i).getFrequency(),
+                            (double) (frequencies.get(i).getFrequency()) / (double) numWords)));
         }
     }
 
@@ -50,7 +65,7 @@ public class Indexer {
         try {
             FileInputStream fileIn = new FileInputStream(filename);
             ObjectInputStream in = new ObjectInputStream(fileIn);
-            index = (HashMap<String, List<Pair<String, Integer>>>) in.readObject();
+            index = (HashMap<String, WordTFIDF>) in.readObject();
             in.close();
             fileIn.close();
         } catch (Exception e) {
@@ -60,6 +75,13 @@ public class Indexer {
 
     public void print() {
         System.out.println(index);
+    }
+
+    public String maxTFIDF(String word) {
+        if(index.containsKey(word))
+            return index.get(word).maxTFIDF(corpusSize);
+        else
+            return "";
     }
 
     public static void main(String[] args) {
@@ -82,10 +104,19 @@ public class Indexer {
 
         String runtime = ((Long)(System.currentTimeMillis()-start)).toString();
         System.out.println("Runtime: " + runtime);
-        System.out.println("Word Count: " + ((Integer)wordCount).toString());
+
+        System.out.println("Doc Wordcount: " + (indexer.docSizes).toString());
+
+        System.out.println("Num Unique Words: " + indexer.index.keySet().size());
+
+        System.out.println("Word Count: " + ((Integer)indexer.corpusSize).toString());
 
         indexer.print();
 
         indexer.save();
+
+        //test searching
+
+        System.out.println(indexer.maxTFIDF("pollution"));
     }
 }
