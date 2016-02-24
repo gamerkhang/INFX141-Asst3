@@ -10,6 +10,11 @@ import java.util.Map;
 
 /**
  * Created by VGDC_1 on 2/18/2016.
+ * Brett Lenz 76382638
+ Carl Pacheco 47911659
+ Derek Edrich 34363846
+ Khang Tran 47508988
+
  */
 public final class WordTFIDF implements Serializable {
     public String word;

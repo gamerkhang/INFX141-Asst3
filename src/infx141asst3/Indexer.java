@@ -10,6 +10,12 @@ import java.util.List;
 
 /**
  * Created by VGDC_1 on 2/8/2016.
+ *
+ * Brett Lenz 76382638
+ Carl Pacheco 47911659
+ Derek Edrich 34363846
+ Khang Tran 47508988
+
  */
 public class Indexer {
     public HashMap<String, WordTFIDF> index;
@@ -74,7 +80,16 @@ public class Indexer {
     }
 
     public void print() {
-        System.out.println(index);
+        try {
+            PrintWriter writer = new PrintWriter("theIndex.txt", "UTF-8");
+            for (String k : index.keySet())
+                writer.println(k + " -> " + index.get(k).toString());
+
+            writer.close();
+        }
+        catch (Exception e) {
+
+        }
     }
 
     public String maxTFIDF(String word) {
@@ -100,6 +115,9 @@ public class Indexer {
             wordCount += words.size();
             List<Frequency> frequencies = WordFrequencyCounter.computeWordFrequencies(words);
             indexer.addFrequencies(filename, frequencies);
+            System.out.println(filename);
+            //if(i > 31500)
+            //    break;
         }
 
         String runtime = ((Long)(System.currentTimeMillis()-start)).toString();
