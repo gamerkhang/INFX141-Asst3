@@ -31,6 +31,7 @@ public class Indexer
         read(filename);
     }
 
+    //adds all the words in the file to the Index
     public void addFrequencies(String filename, List<Frequency> frequencies)
     {
         int numWords = 0;
@@ -46,12 +47,12 @@ public class Indexer
 
         for (Frequency frequency : frequencies)
         {
-            if (!index.containsKey(frequency.getText()))
-                index.put(frequency.getText(), new WordTFIDF(frequency.getText()));
+            String word = frequency.getText();
 
-            double termFrequency = Math.round(((double) frequency.getFrequency() / numWords)*10000.0)/10000.0;
+            if (!index.containsKey(word))
+                index.put(word, new WordTFIDF(word));
 
-            index.get(frequency.getText()).add(new Pair<String, Pair<Integer, Double>>(filename, new Pair<Integer, Double>(frequency.getFrequency(), termFrequency)));
+            index.get(word).add(filename, frequency.getFrequency(), numWords);
         }
     }
 
@@ -131,18 +132,47 @@ public class Indexer
     //TODO Return search results
     public String searchResults(String[] terms) {
         //remove duplicates from array
-        String results = "";
         HashSet<String> termSet = new HashSet<>(Arrays.asList(terms));
-        PriorityQueue<Pair<String, Double>> resultsQueue = new PriorityQueue<Pair<String, Double>>();
+        //pairs are (filename, tfIDF of all the words in the search term array combined)
+        HashMap<String, Double> documentScores = new HashMap<>();
 
         for (String term : termSet)
         {
             if (index.containsKey(term)) {
                 //Use index.get(term) to get its WordTFIDF
-                
+                WordTFIDF currentWord = index.get(term);
+
+                //loop through all files
+                for (String file : currentWord.TFs.keySet()) {
+                    //if they're not in the map, add them to the map
+                    if (!documentScores.containsKey(file))
+                        documentScores.put(file, currentWord.TFIDF(file, corpusSize));
+                    //else, increment the score of the file w/ the score for the current term
+                    else {
+                        double newScore = documentScores.get(file) + currentWord.TFIDF(file, corpusSize);
+                        documentScores.put(file, newScore);
+                    }
+                }
             }
         }
 
+        ArrayList<Pair<String, Double>> resultsQueue = new ArrayList<>();
+        //build the pQueue with the objects in the hashmap
+        for (Map.Entry<String, Double> entry: documentScores.entrySet())
+            resultsQueue.add(new Pair<String, Double>(entry.getKey(), entry.getValue()));
+
+        		// Sort by frequency count then alphabetically
+		resultsQueue.sort((Pair<String, Double> a, Pair<String, Double> b) -> {
+            return Double.compare(b.getValue(), a.getValue());
+        });
+
+        String results = "";
+
+
+        for (int i = 0; i < resultsQueue.size(); i++)
+        {
+            results += (i+1) + ". Filename: " + resultsQueue.get(i).getKey() + ", Score: " + resultsQueue.get(i).getValue() + "\n";
+        }
 
         return results;
     }
@@ -191,7 +221,7 @@ public class Indexer
 
                 String[] searchTerms = inputString.split(" ");
 
-                System.out.println(indexer.maxTFIDF(inputString));
+                System.out.println(indexer.searchResults(searchTerms));
             }
         }
         catch (Exception e)

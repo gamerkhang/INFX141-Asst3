@@ -19,6 +19,7 @@ public final class WordTFIDF implements Serializable
 {
     public String word;
     public int IDF;
+    // (Filename, (occurrences, occurrences/TotalNumOfWords))
     public HashMap<String, Pair<Integer, Double>> TFs;
 
     public WordTFIDF(String word)
@@ -28,12 +29,19 @@ public final class WordTFIDF implements Serializable
         TFs = new HashMap<String, Pair<Integer, Double>>();
     }
 
-    public void add(Pair<String, Pair<Integer, Double>> data)
+    //adds a value to the map of TFs
+    public void add(String filename, int occurrences, int totalWordCount)
     {
-        TFs.put(data.getKey(), data.getValue());
-        IDF += data.getValue().getKey();
+        double roundingFactor = 10000.0;
+        double termFrequencyPerDoc = Math.round(((double) occurrences / totalWordCount)*roundingFactor)/roundingFactor;
+
+        Pair<Integer, Double> tfInfo = new Pair<>(occurrences, termFrequencyPerDoc);
+
+        TFs.put(filename, tfInfo);
+        IDF += occurrences;
     }
 
+    //finds the TFIDF of the word for the file specified
     public double TFIDF(String filename, int corpusSize)
     {
         if (TFs.containsKey((filename)))
@@ -44,6 +52,7 @@ public final class WordTFIDF implements Serializable
             return 0;
     }
 
+    //returns the filename with the highest TFIDF for the word
     public String maxTFIDF(int corpusSize)
     {
         double max = -1;
@@ -58,6 +67,13 @@ public final class WordTFIDF implements Serializable
             }
         }
         return maxFilename;
+    }
+
+    public double getTFIDF(String filename) {
+        double result = 0;
+        if (TFs.containsKey(filename))
+            return TFs.get(filename).getValue();
+        return result;
     }
 
     @Override
