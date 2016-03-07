@@ -1,24 +1,25 @@
-package infx141asst3;
-
-import javafx.util.Pair;
-
-import java.io.*;
-import java.util.*;
-
 /**
- * Created by VGDC_1 on 2/8/2016.
- * <p/>
  * Brett Lenz 76382638
  * Carl Pacheco 47911659
  * Derek Edrich 34363846
  * Khang Tran 47508988
  */
+
+package infx141asst3;
+
+import javafx.util.Pair;
+import java.io.*;
+import java.util.*;
+
 public class Indexer
 {
+    // Map for index
     public HashMap<String, WordTFIDF> index;
     public int corpusSize;
+    // Map of document and its word size
     public HashMap<String, Integer> docSizes;
 
+    // Constructor - default
     public Indexer()
     {
         corpusSize = 0;
@@ -26,12 +27,13 @@ public class Indexer
         docSizes = new HashMap<String, Integer>();
     }
 
+    // Constructor - Passing in file
     public Indexer(String filename)
     {
         read(filename);
     }
 
-    //adds all the words in the file to the Index
+    //Adds all the words in the file to the Index
     public void addFrequencies(String filename, List<Frequency> frequencies)
     {
         int numWords = 0;
@@ -50,12 +52,15 @@ public class Indexer
             String word = frequency.getText();
 
             if (!index.containsKey(word))
+            {
                 index.put(word, new WordTFIDF(word));
+            }
 
             index.get(word).add(filename, frequency.getFrequency(), numWords);
         }
     }
 
+    // Serialize data
     public boolean saveSerializable()
     {
         try
@@ -63,6 +68,7 @@ public class Indexer
             FileOutputStream fileOut = new FileOutputStream("index.ser");
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             out.writeObject(index);
+            out.writeObject(corpusSize);
             out.close();
             fileOut.close();
         }
@@ -81,6 +87,7 @@ public class Indexer
             FileInputStream fileIn = new FileInputStream(filename);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             index = (HashMap<String, WordTFIDF>) in.readObject();
+            corpusSize = (int) in.readObject();
             in.close();
             fileIn.close();
         }
@@ -90,47 +97,35 @@ public class Indexer
         }
     }
 
-    public void saveToText()
+
+    // Finds URL of the DocID
+    public String docIdToURL(String docID)
     {
+        String result = "";
         try
         {
-            PrintWriter writer = new PrintWriter("theIndex.txt", "UTF-8");
+            String lineNumber = docID.split("\\.")[0];
+            BufferedReader br = new BufferedReader(new FileReader(new File("urlToDocID.txt")));
 
-            for (String k : index.keySet())
-                writer.println(k + " -> " + index.get(k).toString());
-
-            writer.close();
+            while (true)
+            {
+                String[] tmp = br.readLine().split(" ");
+                if (tmp[0].equals(lineNumber))
+                {
+                    return tmp[1];
+                }
+            }
         }
         catch (Exception e)
         {
-
         }
+        return result;
     }
 
-    public String maxTFIDF(String word)
+
+    // Get the search results of the terms that are passed in
+    public String searchResults(String[] terms)
     {
-        if (!index.containsKey(word))
-            return "Not Found";
-        else
-            return index.get(word).maxTFIDF(corpusSize);
-    }
-
-    /*
-    convert the array into a set (so that users can’t put the same word twice)
-    for every term
-        if (index.containsKey(term))
-
-    How do we work with multiple terms? (set union)
-
-    String results;
-    Store the results (documents) in a priority queue, sorted by the doc’s TFIDF
-    Loop through the queue for however many results you want
-        if there are less results than the number asked for, return that many
-        append the result to the results string
-    return the results string
-     */
-    //TODO Return search results
-    public String searchResults(String[] terms) {
         //remove duplicates from array
         HashSet<String> termSet = new HashSet<>(Arrays.asList(terms));
         //pairs are (filename, tfIDF of all the words in the search term array combined)
@@ -138,17 +133,22 @@ public class Indexer
 
         for (String term : termSet)
         {
-            if (index.containsKey(term)) {
+            if (index.containsKey(term))
+            {
                 //Use index.get(term) to get its WordTFIDF
                 WordTFIDF currentWord = index.get(term);
 
                 //loop through all files
-                for (String file : currentWord.TFs.keySet()) {
+                for (String file : currentWord.TFs.keySet())
+                {
                     //if they're not in the map, add them to the map
                     if (!documentScores.containsKey(file))
+                    {
                         documentScores.put(file, currentWord.TFIDF(file, corpusSize));
+                    }
                     //else, increment the score of the file w/ the score for the current term
-                    else {
+                    else
+                    {
                         double newScore = documentScores.get(file) + currentWord.TFIDF(file, corpusSize);
                         documentScores.put(file, newScore);
                     }
@@ -156,22 +156,45 @@ public class Indexer
             }
         }
 
+        // Holds the ordered results based on TFIDF
         ArrayList<Pair<String, Double>> resultsQueue = new ArrayList<>();
-        //build the pQueue with the objects in the hashmap
-        for (Map.Entry<String, Double> entry: documentScores.entrySet())
-            resultsQueue.add(new Pair<String, Double>(entry.getKey(), entry.getValue()));
+        //Build the pQueue with the objects in the hashmap
+        for (Map.Entry<String, Double> entry : documentScores.entrySet())
+        {
+            resultsQueue.add(new Pair<>(entry.getKey(), entry.getValue()));
+        }
 
-        		// Sort by frequency count then alphabetically
-		resultsQueue.sort((Pair<String, Double> a, Pair<String, Double> b) -> {
+        // Sort by frequency count then alphabetically
+        resultsQueue.sort((Pair<String, Double> a, Pair<String, Double> b) -> {
             return Double.compare(b.getValue(), a.getValue());
         });
 
+        // Result String
         String results = "";
 
-
-        for (int i = 0; i < resultsQueue.size(); i++)
+        // If resultQueue is empty then nothing was found else, build the result string with 5 URLS
+        if (resultsQueue.isEmpty())
         {
-            results += (i+1) + ". Filename: " + resultsQueue.get(i).getKey() + ", Score: " + resultsQueue.get(i).getValue() + "\n";
+            results = "Nothing Found";
+        }
+        else
+        {
+            int loop = 0;
+
+            if (resultsQueue.size() > 5)
+            {
+                loop = 5;
+            }
+            else
+            {
+                loop = resultsQueue.size();
+            }
+
+            for (int i = 0; i < loop; i++)
+            {
+                results += (i + 1) + ". URL: " + docIdToURL(resultsQueue.get(i).getKey()) + "\n";
+                //+ ", Score: " + resultsQueue.get(i).getValue() + "\n";
+            }
         }
 
         return results;
@@ -179,48 +202,57 @@ public class Indexer
 
     public static void main(String[] args)
     {
+        // Initialize index
         Indexer indexer = new Indexer();
-
+        // Folder for corpus
         File folder = new File("pages");
+        // List of files in corpus
         String[] files = folder.list();
+        // Serialization
+        File serializedIndex = new File("index.ser");
 
-        int wordCount = 0;
-        long start = System.currentTimeMillis();
-
-        for (String file : files)
+        // If serializable file exists read it, else build index
+        if (serializedIndex.exists())
         {
-            List<String> words = Utilities.tokenizeFile(new File("pages/" + file));
-            wordCount += words.size();
-            List<Frequency> frequencies = WordFrequencyCounter.computeWordFrequencies(words);
-            indexer.addFrequencies(file, frequencies);
+            indexer.read("index.ser");
         }
+        else
+        {
+            int wordCount = 0;
+            int count = 0;
+            // For each file, add info to index
+            for (String file : files)
+            {
+                List<String> words = Utilities.tokenizeFile(new File("pages/" + file));
+                wordCount += words.size();
+                List<Frequency> frequencies = WordFrequencyCounter.computeWordFrequencies(words);
+                indexer.addFrequencies(file, frequencies);
+                System.out.println(file + " Number: " + (count++));
+            }
 
-//        String runtime = ((Long) (System.currentTimeMillis() - start)).toString();
-//        System.out.println("Runtime: " + runtime);
-//
-//        System.out.println("Doc Wordcount: " + indexer.docSizes.toString());
-//
-//        System.out.println("Num Unique Words: " + indexer.index.keySet().size());
-//
-//        System.out.println("Word Count: " + ((Integer) indexer.corpusSize).toString());
-
-        indexer.saveToText();
-
-        //indexer.saveSerializable();
-
+            // Serialize the index
+            indexer.saveSerializable();
+        }
         try
         {
+            // Search input
             Scanner input = new Scanner(System.in);
 
             while (true)
             {
                 System.out.print("Search: ");
-                String inputString = input.nextLine().trim();
-                if (inputString.equals("quit"))
-                    break;
+                String inputString = input.nextLine().trim().toLowerCase();
 
+                // Close search
+                if (inputString.equals("quit"))
+                {
+                    break;
+                }
+
+                //Put terms into array
                 String[] searchTerms = inputString.split(" ");
 
+                // Display search results
                 System.out.println(indexer.searchResults(searchTerms));
             }
         }
