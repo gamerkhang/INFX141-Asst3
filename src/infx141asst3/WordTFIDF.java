@@ -49,7 +49,7 @@ public final class WordTFIDF implements Serializable
         // If TF is in Map, Calculate TFIDF, return 0
         if (TFs.containsKey((filename)))
         {
-            return (1 + Math.log(TFs.get(filename).getKey())) * Math.log((double) corpusSize / (double) TFs.get(filename).getKey());
+            return (1 + Math.log(TFs.get(filename).getKey())) * Math.log((double) corpusSize / (double) TFs.size());
         }
         else
         {

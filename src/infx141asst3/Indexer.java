@@ -80,7 +80,7 @@ public class Indexer
         return true;
     }
 
-    private void read(String filename)
+    public void read(String filename)
     {
         try
         {
@@ -99,7 +99,7 @@ public class Indexer
 
 
     // Finds URL of the DocID
-    public String docIdToURL(String docID)
+    public static String docIdToURL(String docID)
     {
         String result = "";
         try
@@ -124,7 +124,7 @@ public class Indexer
 
 
     // Get the search results of the terms that are passed in
-    public String searchResults(String[] terms)
+    public ArrayList searchResults(String[] terms)
     {
         //remove duplicates from array
         HashSet<String> termSet = new HashSet<>(Arrays.asList(terms));
@@ -169,35 +169,14 @@ public class Indexer
             return Double.compare(b.getValue(), a.getValue());
         });
 
-        // Result String
-        String results = "";
-
         // If resultQueue is empty then nothing was found else, build the result string with 5 URLS
         if (resultsQueue.isEmpty())
         {
-            results = "Nothing Found";
-        }
-        else
-        {
-            int loop = 0;
-
-            if (resultsQueue.size() > 5)
-            {
-                loop = 5;
-            }
-            else
-            {
-                loop = resultsQueue.size();
-            }
-
-            for (int i = 0; i < loop; i++)
-            {
-                results += (i + 1) + ". URL: " + docIdToURL(resultsQueue.get(i).getKey()) + "\n";
-                //+ ", Score: " + resultsQueue.get(i).getValue() + "\n";
-            }
+            System.out.println("Nothing Found");
         }
 
-        return results;
+
+        return resultsQueue;
     }
 
     public static void main(String[] args)
@@ -253,7 +232,24 @@ public class Indexer
                 String[] searchTerms = inputString.split(" ");
 
                 // Display search results
-                System.out.println(indexer.searchResults(searchTerms));
+                ArrayList<Pair> results = indexer.searchResults(searchTerms);
+
+                int loop = 0;
+
+                if (results.size() > 5)
+                {
+                    loop = 5;
+                }
+                else
+                {
+                    loop = results.size();
+                }
+
+                for (int i = 0; i < loop; i++)
+                {
+                    System.out.println((i + 1) + ". " + docIdToURL(results.get(i).getKey() + "\n"));
+                    //+ ", Score: " + resultsQueue.get(i).getValue() + "\n";
+                }
             }
         }
         catch (Exception e)
